@@ -1,16 +1,27 @@
 import { defineStore } from 'pinia'
-import { listJobs, getJob, createJob, updateJob, addLog } from '@/api/jobsApi'
+import { listJobs, getJob, createJob, updateJob, addLog, listStatuses } from '@/api/jobsApi'
 
 export const useJobsStore = defineStore('jobs', {
   state: () => ({
     items: [],
     current: null,
     loading: false,
-    error: null
+    error: null,
+    statuses: [],         // [{id, code, label}]
+    statusesById: {}      // { [id]: {id, code, label} }
   }),
   actions: {
+    async fetchStatuses() {
+      if (this.statuses && this.statuses.length > 0) return
+      const { data, error } = await listStatuses()
+      if (error) { this.error = error; return }
+      this.statuses = data || []
+      this.statusesById = {}
+      for (const s of this.statuses) this.statusesById[s.id] = s
+    },
     async fetchAll() {
       this.loading = true
+      await this.fetchStatuses()
       const { data, error } = await listJobs()
       this.loading = false
       if (error) { this.error = error; return }
@@ -18,6 +29,7 @@ export const useJobsStore = defineStore('jobs', {
     },
     async fetchOne(id) {
       this.loading = true
+      await this.fetchStatuses()
       const { data, error } = await getJob(id)
       this.loading = false
       if (error) { this.error = error; return }
@@ -44,7 +56,13 @@ export const useJobsStore = defineStore('jobs', {
         this.current.job_logs.push(data)
       }
       return { data, error }
+    },
+    // helpers
+    statusLabel(id) {
+      return (this.statusesById[id]?.label) || ''
+    },
+    statusCode(id) {
+      return (this.statusesById[id]?.code) || ''
     }
   }
 })
-

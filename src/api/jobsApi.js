@@ -34,3 +34,9 @@ export async function getPublicTracking(token) {
   return await supabase.rpc('get_public_tracking', { p_token: token })
 }
 
+// Status lookup
+export async function listStatuses() {
+  return await supabase.from('jobs_status')
+    .select('id, code, label')
+    .order('id', { ascending: true })
+}

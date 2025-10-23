@@ -9,7 +9,10 @@ const router = useRouter()
 onMounted(() => store.fetchAll())
 
 function go(job) { router.push(`/jobs/${job.id}`) }
-function statusClass(s) { return `status status--${s}` }
+function statusClass(id) {
+  const code = store.statusCode(id)
+  return `status status--${code||'unknown'}`
+}
 </script>
 
 <template>
@@ -36,7 +39,7 @@ function statusClass(s) { return `status status--${s}` }
             <td class="title">{{ j.title }}</td>
             <td>{{ j.customer_name }}</td>
             <td>{{ j.device_type }}</td>
-            <td><span :class="statusClass(j.status)">{{ j.status }}</span></td>
+            <td><span :class="statusClass(j.status)">{{ store.statusLabel(j.status) }}</span></td>
             <td class="muted">{{ new Date(j.updated_at).toLocaleString() }}</td>
           </tr>
         </tbody>

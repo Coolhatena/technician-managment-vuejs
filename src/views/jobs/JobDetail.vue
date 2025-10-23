@@ -7,14 +7,14 @@ import { uploadAttachment } from '@/api/storageApi' // opcional
 const route = useRoute()
 const store = useJobsStore()
 const logMsg = ref('')
-const newStatus = ref('')
+const newStatus = ref('') // holds numeric id as string or number
 
 onMounted(() => store.fetchOne(route.params.id))
 
-const statuses = ['received','in_progress','waiting_parts','repaired','delivered','canceled']
+// statuses come from store.statuses (id, code, label)
 
 async function addLog() {
-  const status = newStatus.value || null
+  const status = newStatus.value ? Number(newStatus.value) : null
   const { error } = await store.appendLog(store.current.id, logMsg.value, status)
   if (!error && status) {
     // Actualiza el estado del trabajo al estado del último log
@@ -58,7 +58,7 @@ async function onFile(e){
           <p><b>Cliente:</b> {{ store.current.customer_name }} ({{ store.current.customer_phone||'n/a' }})</p>
           <p><b>Equipo:</b> {{ store.current.device_type }} | {{ store.current.brand }} {{ store.current.model }}</p>
           <p><b>Serie:</b> {{ store.current.serial || 'n/a' }}</p>
-          <p><b>Estado:</b> <span class="status-pill">{{ store.current.status }}</span></p>
+          <p><b>Estado:</b> <span class="status-pill">{{ store.statusLabel(store.current.status) }}</span></p>
         </div>
         <!-- Se elimina cambio de estado independiente. El estado se actualiza con el último log -->
         <div class="uploader">
@@ -75,7 +75,7 @@ async function onFile(e){
           <div class="composer-actions">
             <select class="select" v-model="newStatus">
               <option value="">— estado para el log —</option>
-              <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+              <option v-for="s in store.statuses" :key="s.id" :value="s.id">{{ s.label }}</option>
             </select>
             <button class="btn btn-primary" @click="addLog">Agregar log</button>
           </div>
@@ -84,7 +84,7 @@ async function onFile(e){
           <li class="log-item" v-for="l in (store.current.job_logs||[])" :key="l.id">
             <div class="log-head">
               <small class="muted">{{ new Date(l.created_at).toLocaleString() }}</small>
-              <span v-if="l.status" class="tag">{{ l.status }}</span>
+              <span v-if="l.status" class="tag">{{ store.statusLabel(l.status) }}</span>
             </div>
             <div class="log-message">{{ l.message }}</div>
           </li>
