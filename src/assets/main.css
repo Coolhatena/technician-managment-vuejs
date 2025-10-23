@@ -1,0 +1,19 @@
+@import './base.css';
+
+a {
+  color: var(--role-accent, #6366f1);
+  text-decoration: none;
+  transition: color var(--transition-base), box-shadow var(--transition-base);
+}
+
+a:hover {
+  color: var(--role-accent-strong, #4f46e5);
+}
+
+button {
+  font-family: inherit;
+}
+
+ul {
+  list-style: none;
+}
