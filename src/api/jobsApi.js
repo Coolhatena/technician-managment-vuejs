@@ -8,7 +8,10 @@ export async function listJobs() {
 
 export async function getJob(id) {
   return await supabase.from('jobs')
-    .select('*, job_logs(*, created_by)')
+    .select(`
+      id,title,customer_name,customer_phone,device_type,brand,model,serial,intake_date,status,notes,assigned_to,share_public,public_token,created_at,updated_at,
+      job_logs(id,job_id,message,status,attachment_url,created_by,created_at)
+    `)
     .eq('id', id)
     .single()
 }
@@ -23,10 +26,10 @@ export async function updateJob(id, patch) {
   return await supabase.from('jobs').update(patch).eq('id', id).select().single()
 }
 
-export async function addLog(jobId, message, status = null) {
+export async function addLog(jobId, message, status = null, attachmentUrl = null) {
   const user = (await supabase.auth.getUser()).data.user
   return await supabase.from('job_logs')
-    .insert({ job_id: jobId, message, status, created_by: user.id })
+    .insert({ job_id: jobId, message, status, attachment_url: attachmentUrl, created_by: user.id })
     .select().single()
 }
 

@@ -49,8 +49,8 @@ export const useJobsStore = defineStore('jobs', {
       }
       return { data, error }
     },
-    async appendLog(jobId, message, status = null) {
-      const { data, error } = await addLog(jobId, message, status)
+    async appendLog(jobId, message, status = null, attachmentUrl = null) {
+      const { data, error } = await addLog(jobId, message, status, attachmentUrl)
       if (!error && this.current && this.current.id === jobId) {
         this.current.job_logs = this.current.job_logs || []
         this.current.job_logs.push(data)

@@ -8,6 +8,8 @@ const route = useRoute()
 const store = useJobsStore()
 const logMsg = ref('')
 const newStatus = ref('') // holds numeric id as string or number
+const attachFile = ref(null)
+const attachName = ref('')
 
 onMounted(() => store.fetchOne(route.params.id))
 
@@ -15,7 +17,17 @@ onMounted(() => store.fetchOne(route.params.id))
 
 async function addLog() {
   const status = newStatus.value ? Number(newStatus.value) : null
-  const { error } = await store.appendLog(store.current.id, logMsg.value, status)
+  let attachmentUrl = null
+  if (attachFile.value) {
+    const res = await uploadAttachment(store.current.id, attachFile.value)
+    if (res.error) {
+      console.error('Error al subir adjunto:', res.error)
+      alert('No se pudo subir el adjunto')
+      return
+    }
+    attachmentUrl = res.data.publicUrl
+  }
+  const { error } = await store.appendLog(store.current.id, logMsg.value, status, attachmentUrl)
   if (!error && status) {
     // Actualiza el estado del trabajo al estado del último log
     await store.patch(store.current.id, { status })
@@ -24,6 +36,8 @@ async function addLog() {
   }
   logMsg.value = ''
   newStatus.value = ''
+  attachFile.value = null
+  attachName.value = ''
 }
 
 async function copyPublicLink() {
@@ -38,8 +52,34 @@ async function copyPublicLink() {
 async function onFile(e){
   const f = e.target.files?.[0]
   if (!f) return
-  const res = await uploadAttachment(store.current.id, f)
-  if (!res.error) await store.appendLog(store.current.id, `Adjunto: ${res.data.publicUrl}`)
+  attachFile.value = f
+  attachName.value = f.name
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+}
+
+function linkify(text) {
+  if (!text) return ''
+  const re = /(https?:\/\/[^\s]+)/g
+  let html = ''
+  let last = 0
+  let m
+  while ((m = re.exec(text)) !== null) {
+    const url = m[0]
+    const idx = m.index
+    html += escapeHtml(text.slice(last, idx))
+    const safeUrl = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    html += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`
+    last = idx + url.length
+  }
+  html += escapeHtml(text.slice(last))
+  return html
 }
 </script>
 
@@ -60,13 +100,7 @@ async function onFile(e){
           <p><b>Serie:</b> {{ store.current.serial || 'n/a' }}</p>
           <p><b>Estado:</b> <span class="status-pill">{{ store.statusLabel(store.current.status) }}</span></p>
         </div>
-        <!-- Se elimina cambio de estado independiente. El estado se actualiza con el último log -->
-        <div class="uploader">
-          <label class="file-label">
-            <input class="file-input" type="file" @change="onFile" />
-            Adjuntar archivo
-          </label>
-        </div>
+        <!-- Adjuntar archivo se movió al compositor de logs -->
       </div>
       <div class="card">
         <h3>Logs</h3>
@@ -77,6 +111,11 @@ async function onFile(e){
               <option value="">— estado para el log —</option>
               <option v-for="s in store.statuses" :key="s.id" :value="s.id">{{ s.label }}</option>
             </select>
+            <label class="file-label">
+              <input class="file-input" type="file" @change="onFile" />
+              Adjuntar archivo
+            </label>
+            <span v-if="attachName" class="file-chip">{{ attachName }}</span>
             <button class="btn btn-primary" @click="addLog">Agregar log</button>
           </div>
         </div>
@@ -86,7 +125,11 @@ async function onFile(e){
               <small class="muted">{{ new Date(l.created_at).toLocaleString() }}</small>
               <span v-if="l.status" class="tag">{{ store.statusLabel(l.status) }}</span>
             </div>
-            <div class="log-message">{{ l.message }}</div>
+            <div class="log-message" v-html="linkify(l.message)"></div>
+            <div v-if="l.attachment_url" class="attachment">
+              <a :href="l.attachment_url" target="_blank" rel="noopener noreferrer">Ver adjunto</a>
+              <img v-if="/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(l.attachment_url)" :src="l.attachment_url" alt="Adjunto" class="attachment-thumb"/>
+            </div>
           </li>
         </ul>
         <p v-if="!store.current.job_logs || store.current.job_logs.length===0" class="muted">Aún no hay actualizaciones.</p>
@@ -119,6 +162,9 @@ async function onFile(e){
 .uploader{margin-top:12px}
 .file-label{display:inline-block;padding:10px 14px;border:1px dashed var(--card-border);border-radius:12px;cursor:pointer;color:var(--muted-text)}
 .file-input{display:none}
+.file-chip{font-size:12px;color:var(--muted-text)}
+.attachment{margin-top:6px}
+.attachment-thumb{display:block;max-width:200px;max-height:140px;margin-top:4px;border-radius:8px;border:1px solid var(--card-border)}
 
 .logs{list-style:none;padding:0;margin:0}
 .log-item{border-bottom:1px solid rgba(148,163,184,.2);padding:10px 0}

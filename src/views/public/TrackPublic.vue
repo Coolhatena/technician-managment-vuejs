@@ -27,8 +27,34 @@ onMounted(async () => {
   }
   logs.value = data
     .filter(r => r.log_id)
-    .map(r => ({ id: r.log_id, message: r.log_message, status: r.log_status, created_at: r.log_created_at }))
+    .map(r => ({ id: r.log_id, message: r.log_message, status: r.log_status, attachment_url: r.log_attachment_url, created_at: r.log_created_at }))
 })
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+}
+
+function linkify(text) {
+  if (!text) return ''
+  const re = /(https?:\/\/[^\s]+)/g
+  let html = ''
+  let last = 0
+  let m
+  while ((m = re.exec(text)) !== null) {
+    const url = m[0]
+    const idx = m.index
+    html += escapeHtml(text.slice(last, idx))
+    const safeUrl = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    html += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`
+    last = idx + url.length
+  }
+  html += escapeHtml(text.slice(last))
+  return html
+}
 </script>
 
 <template>
@@ -47,7 +73,11 @@ onMounted(async () => {
       <ul>
         <li v-for="l in logs" :key="l.id">
           <small>{{ new Date(l.created_at).toLocaleString() }}</small>
-          <div>{{ l.message }}</div>
+          <div v-html="linkify(l.message)"></div>
+          <div v-if="l.attachment_url" class="attachment">
+            <a :href="l.attachment_url" target="_blank" rel="noopener noreferrer">Ver adjunto</a>
+            <img v-if="/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(l.attachment_url)" :src="l.attachment_url" alt="Adjunto" class="attachment-thumb"/>
+          </div>
           <div v-if="l.status"><i>{{ l.status }}</i></div>
         </li>
       </ul>
@@ -63,4 +93,6 @@ ul{list-style:none;padding:0;margin:0}
 li{border-bottom:1px solid rgba(148,163,184,.2);padding:10px 0}
 small{color:var(--muted-text)}
 i{font-style:normal;padding:2px 8px;border-radius:999px;background:var(--accent-soft);font-size:12px;font-weight:700;text-transform:uppercase}
+.attachment{margin-top:6px}
+.attachment-thumb{display:block;max-width:200px;max-height:140px;margin-top:4px;border-radius:8px;border:1px solid var(--card-border)}
 </style>
