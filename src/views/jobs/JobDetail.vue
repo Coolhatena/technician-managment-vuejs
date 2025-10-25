@@ -29,8 +29,11 @@ async function addLog() {
   }
   const { error } = await store.appendLog(store.current.id, logMsg.value, status, attachmentUrl)
   if (!error && status) {
-    // Actualiza el estado del trabajo al estado del último log
-    await store.patch(store.current.id, { status })
+    // Si el estado es "extra_sugerido" no cambies el estado del trabajo
+    const code = store.statusCode(status)
+    if (code !== 'extra_sugerido') {
+      await store.patch(store.current.id, { status })
+    }
     // Re-carga para recuperar job_logs (updateJob no los incluye)
     await store.fetchOne(route.params.id)
   }
@@ -130,6 +133,14 @@ function linkify(text) {
               <a :href="l.attachment_url" target="_blank" rel="noopener noreferrer">Ver adjunto</a>
               <img v-if="/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(l.attachment_url)" :src="l.attachment_url" alt="Adjunto" class="attachment-thumb"/>
             </div>
+            <div v-if="l.extra_response && (Array.isArray(l.extra_response) ? l.extra_response.length>0 : true)" class="response">
+              <span class="tag" :class="{'approved': (Array.isArray(l.extra_response)? l.extra_response[0]?.decision : l.extra_response?.decision) === 'approved', 'rejected': (Array.isArray(l.extra_response)? l.extra_response[0]?.decision : l.extra_response?.decision) === 'rejected'}">
+                Cliente {{ (Array.isArray(l.extra_response)? l.extra_response[0]?.decision : l.extra_response?.decision) === 'approved' ? 'autorizó' : 'rechazó' }} el extra
+              </span>
+            </div>
+            <div v-else-if="store.statusCode(l.status) === 'extra_sugerido'" class="response">
+              <span class="tag pending">Pendiente de respuesta</span>
+            </div>
           </li>
         </ul>
         <p v-if="!store.current.job_logs || store.current.job_logs.length===0" class="muted">Aún no hay actualizaciones.</p>
@@ -170,6 +181,9 @@ function linkify(text) {
 .log-item{border-bottom:1px solid rgba(148,163,184,.2);padding:10px 0}
 .log-head{display:flex;gap:8px;align-items:center;justify-content:space-between}
 .tag{padding:2px 8px;border-radius:999px;background:var(--accent-soft);font-size:12px;font-weight:700;text-transform:uppercase}
+.tag.approved{background:#d1fae5;color:#065f46}
+.tag.rejected{background:#fee2e2;color:#991b1b}
+.tag.pending{background:#e5e7eb;color:#374151}
 .log-message{margin-top:6px;white-space:pre-wrap}
 .muted{color:var(--muted-text)}
 

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getPublicTracking } from '@/api/jobsApi'
+import { getPublicTracking, respondExtra } from '@/api/jobsApi'
 
 const route = useRoute()
 const token = route.params.token
@@ -27,7 +27,14 @@ onMounted(async () => {
   }
   logs.value = data
     .filter(r => r.log_id)
-    .map(r => ({ id: r.log_id, message: r.log_message, status: r.log_status, attachment_url: r.log_attachment_url, created_at: r.log_created_at }))
+    .map(r => ({
+      id: r.log_id,
+      message: r.log_message,
+      status: r.log_status,
+      attachment_url: r.log_attachment_url,
+      created_at: r.log_created_at,
+      response: r.log_response_decision ? { decision: r.log_response_decision, created_at: r.log_response_created_at } : null
+    }))
 })
 
 function escapeHtml(s) {
@@ -55,6 +62,31 @@ function linkify(text) {
   html += escapeHtml(text.slice(last))
   return html
 }
+
+async function handleDecision(log, decision) {
+  // decision: 'approved' | 'rejected'
+  const { data, error } = await respondExtra(token, log.id, decision)
+  if (error) {
+    console.error('respond_extra error:', error)
+    const msg = error?.message || ''
+    // Muestra mensaje más útil si la función no existe o permisos
+    if (/function.*respond_extra.*does not exist/i.test(msg) || /procedure.*respond_extra.*does not exist/i.test(msg)) {
+      alert('No se pudo enviar tu respuesta: función respond_extra no existe en la base. Aplique las migraciones en Supabase.')
+    } else if (/permission denied|execute privilege/i.test(msg)) {
+      alert('No se pudo enviar tu respuesta: sin permisos para ejecutar respond_extra. Verifique GRANT EXECUTE para anon.')
+    } else {
+      alert('No se pudo enviar tu respuesta. Intenta nuevamente.')
+    }
+    return
+  }
+  // Actualiza el log localmente
+  if (data && data.length > 0) {
+    log.response = { decision: data[0].decision, created_at: data[0].created_at }
+  } else {
+    // fallback por si la función no devuelve filas
+    log.response = { decision, created_at: new Date().toISOString() }
+  }
+}
 </script>
 
 <template>
@@ -78,7 +110,21 @@ function linkify(text) {
             <a :href="l.attachment_url" target="_blank" rel="noopener noreferrer">Ver adjunto</a>
             <img v-if="/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(l.attachment_url)" :src="l.attachment_url" alt="Adjunto" class="attachment-thumb"/>
           </div>
-          <div v-if="l.status"><i>{{ l.status }}</i></div>
+          <div class="log-footer">
+            <div v-if="l.status" class="status-wrap"><i>{{ l.status }}</i></div>
+            <!-- Extra sugerido: permitir respuesta -->
+            <div v-if="l.status === 'Extra sugerido'" class="actions">
+              <template v-if="!l.response">
+                <button class="btn btn-primary" @click="handleDecision(l, 'approved')">Autorizar</button>
+                <button class="btn" @click="handleDecision(l, 'rejected')">Rechazar</button>
+              </template>
+              <template v-else>
+                <span class="decision" :class="{'approved': l.response.decision==='approved', 'rejected': l.response.decision==='rejected'}">
+                  Tu respuesta: {{ l.response.decision === 'approved' ? 'Autorizado' : 'Rechazado' }}
+                </span>
+              </template>
+            </div>
+          </div>
         </li>
       </ul>
       <p v-if="logs.length===0">Aún no hay actualizaciones.</p>
@@ -95,4 +141,12 @@ small{color:var(--muted-text)}
 i{font-style:normal;padding:2px 8px;border-radius:999px;background:var(--accent-soft);font-size:12px;font-weight:700;text-transform:uppercase}
 .attachment{margin-top:6px}
 .attachment-thumb{display:block;max-width:200px;max-height:140px;margin-top:4px;border-radius:8px;border:1px solid var(--card-border)}
+.log-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.status-wrap i{display:inline-block}
+.btn{padding:8px 12px;border-radius:999px;border:1px solid var(--card-border);background:var(--card-background);color:var(--text-color);font-weight:600;cursor:pointer}
+.btn-primary{color:var(--accent-contrast);background:linear-gradient(135deg,var(--role-accent),var(--role-accent-strong));border:none}
+.btn:hover{box-shadow:0 8px 24px var(--accent-shadow)}
+.decision{font-weight:700}
+.decision.approved{color:#065f46}
+.decision.rejected{color:#991b1b}
 </style>
