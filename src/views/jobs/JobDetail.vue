@@ -29,11 +29,8 @@ async function addLog() {
   }
   const { error } = await store.appendLog(store.current.id, logMsg.value, status, attachmentUrl)
   if (!error && status) {
-    // Si el estado es "extra_sugerido" no cambies el estado del trabajo
-    const code = store.statusCode(status)
-    if (code !== 'extra_sugerido') {
-      await store.patch(store.current.id, { status })
-    }
+    // Actualiza siempre el estado del trabajo al seleccionado, incluyendo "extra_sugerido"
+    await store.patch(store.current.id, { status })
     // Re-carga para recuperar job_logs (updateJob no los incluye)
     await store.fetchOne(route.params.id)
   }
