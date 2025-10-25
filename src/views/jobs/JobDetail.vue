@@ -152,7 +152,7 @@ function linkify(text) {
 .toolbar{display:flex;gap:8px;align-items:center}
 .select{padding:10px 12px;border:1px solid var(--input-border);border-radius:10px;background:var(--input-background);color:var(--input-text)}
 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
 .card{background:var(--card-background);border:1px solid var(--card-border);border-radius:14px;padding:16px;box-shadow:0 12px 28px rgba(15,23,42,.08)}
 .meta p{margin:6px 0}
 .status-pill{padding:2px 10px;border-radius:999px;background:var(--accent-soft);font-weight:700}
