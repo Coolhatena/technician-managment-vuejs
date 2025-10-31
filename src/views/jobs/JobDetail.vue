@@ -146,6 +146,7 @@ function linkify(text) {
           <p><b>Cliente:</b> {{ store.current.customer_name }} ({{ store.current.customer_phone||'n/a' }})</p>
           <p><b>Equipo:</b> {{ store.current.device_type }} | {{ store.current.brand }} {{ store.current.model }}</p>
           <p><b>Serie:</b> {{ store.current.serial || 'n/a' }}</p>
+          <p v-if="store.current.delivery_at"><b>Entrega estimada:</b> {{ new Date(store.current.delivery_at).toLocaleString() }}</p>
           <p><b>Estado:</b> <span class="status-pill">{{ store.statusLabel(store.current.status) }}</span></p>
         </div>
         <!-- Adjuntar archivo se movió al compositor de logs -->

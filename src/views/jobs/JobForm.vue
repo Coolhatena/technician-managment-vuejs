@@ -8,7 +8,9 @@ const router = useRouter()
 const store = useJobsStore()
 const form = reactive({
   title:'', customer_name:'', customer_phone:'',
-  device_type:'', brand:'', model:'', serial:'', notes:''
+  device_type:'', brand:'', model:'', serial:'',
+  delivery_at:'', // datetime-local (optional)
+  notes:''
 })
 const errors = reactive({ title: false, customer_name: false, device_type: false })
 const { swal } = useSwal()
@@ -33,6 +35,16 @@ async function submit() {
     title: form.title.trim(),
     customer_name: form.customer_name.trim(),
     device_type: form.device_type.trim(),
+  }
+
+  // Normalize delivery_at to ISO if provided
+  if (payload.delivery_at) {
+    const d = new Date(payload.delivery_at)
+    if (!isNaN(d.getTime())) {
+      payload.delivery_at = d.toISOString()
+    } else {
+      delete payload.delivery_at
+    }
   }
 
   const { error, data } = await store.create(payload)
@@ -74,6 +86,10 @@ async function submit() {
       <label class="field">
         <span class="field-label">Serie</span>
         <input v-model="form.serial" />
+      </label>
+      <label class="field">
+        <span class="field-label">Entrega (fecha y hora)</span>
+        <input type="datetime-local" v-model="form.delivery_at" />
       </label>
       <label class="field notes">
         <span class="field-label">Notas</span>

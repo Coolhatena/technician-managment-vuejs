@@ -25,7 +25,8 @@ onMounted(async () => {
     model: head.model,
     serial: head.serial,
     status: head.status,
-    intake_date: head.intake_date
+    intake_date: head.intake_date,
+    delivery_at: head.delivery_at
   }
   logs.value = data
     .filter(r => r.log_id)
@@ -100,6 +101,7 @@ async function handleDecision(log, decision) {
       <p><b>Equipo:</b> {{ job.device_type }} {{ job.brand }} {{ job.model }}</p>
       <p><b>Serie:</b> {{ job.serial || 'n/a' }}</p>
       <p><b>Ingreso:</b> {{ job.intake_date }}</p>
+      <p v-if="job.delivery_at"><b>Entrega estimada:</b> {{ new Date(job.delivery_at).toLocaleString() }}</p>
     </section>
 
     <section class="card">

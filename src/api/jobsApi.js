@@ -10,7 +10,7 @@ export async function getJob(id) {
   // Fetch job without nested embeds to avoid 400s if optional tables aren't present
   const jobRes = await supabase
     .from('jobs')
-    .select('id,title,customer_name,customer_phone,device_type,brand,model,serial,intake_date,status,notes,assigned_to,share_public,public_token,created_at,updated_at')
+    .select('id,title,customer_name,customer_phone,device_type,brand,model,serial,intake_date,delivery_at,status,notes,assigned_to,share_public,public_token,created_at,updated_at')
     .eq('id', id)
     .single()
 
