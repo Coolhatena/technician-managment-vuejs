@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPublicTracking, respondExtra } from '@/api/jobsApi'
+import { formatDate, formatDateTime } from '@/utils/date'
 import { useSwal } from '@/composables/useSwal'
 
 const route = useRoute()
@@ -100,8 +101,8 @@ async function handleDecision(log, decision) {
       <p><b>Estado:</b> {{ job.status }}</p>
       <p><b>Equipo:</b> {{ job.device_type }} {{ job.brand }} {{ job.model }}</p>
       <p><b>Serie:</b> {{ job.serial || 'n/a' }}</p>
-      <p><b>Ingreso:</b> {{ job.intake_date }}</p>
-      <p v-if="job.delivery_at"><b>Entrega estimada:</b> {{ new Date(job.delivery_at).toLocaleString() }}</p>
+      <p><b>Ingreso:</b> {{ formatDate(job.intake_date) }}</p>
+      <p v-if="job.delivery_at"><b>Entrega estimada:</b> {{ formatDateTime(job.delivery_at) }}</p>
     </section>
 
     <section class="card">

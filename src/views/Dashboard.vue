@@ -11,16 +11,57 @@
     </header>
 
     <div class="stats-grid">
-      <!-- Sección de estadísticas simplificada para el sistema de técnicos -->
       <article class="stat-card">
         <header>
-          <h3>Reparaciones</h3>
-          <span class="stat-badge">OK</span>
+          <h3>Total de jobs</h3>
         </header>
-        <p class="stat-value">—</p>
-        <p class="stat-caption">Resumen disponible próximamente</p>
+        <p class="stat-value">{{ totalJobs }}</p>
+        <p class="stat-caption">Todos tus trabajos</p>
+      </article>
+      <article class="stat-card">
+        <header>
+          <h3>Terminados (reparados)</h3>
+        </header>
+        <p class="stat-value">{{ repairedJobs }}</p>
+        <p class="stat-caption">Con estado "repaired"</p>
+      </article>
+      <article class="stat-card">
+        <header>
+          <h3>Entregados</h3>
+        </header>
+        <p class="stat-value">{{ deliveredJobs }}</p>
+        <p class="stat-caption">Con estado "delivered"</p>
+      </article>
+      <article class="stat-card">
+        <header>
+          <h3>En progreso</h3>
+        </header>
+        <p class="stat-value">{{ inProgressJobs }}</p>
+        <p class="stat-caption">En curso o esperando partes</p>
       </article>
     </div>
+
+    <section class="upcoming">
+      <h3>Entregas próximas (7 días)</h3>
+      <div class="card-list" v-if="upcomingDeliveries.length > 0">
+        <router-link
+          v-for="j in upcomingDeliveries"
+          :key="j.id"
+          class="card-list-item"
+          :to="`/jobs/${j.id}`"
+        >
+          <div class="item-main">
+            <div class="item-title">{{ j.title }}</div>
+            <div class="item-sub">{{ j.customer_name }} — {{ j.device_type }}</div>
+          </div>
+          <div class="item-meta">
+            <span class="pill">{{ formatDateTime(j.delivery_at) }}</span>
+            <span class="status">{{ store.statusLabel(j.status) }}</span>
+          </div>
+        </router-link>
+      </div>
+      <p v-else class="muted">No hay entregas próximas.</p>
+    </section>
 
     <section class="quick-actions">
       <h3>Acciones rápidas</h3>
@@ -42,21 +83,63 @@
       </div>
     </section>
   </section>
-</template>
+  </template>
 
 <script setup>
-import { computed } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useAuth } from '@/composables/useAuth'
+import { useJobsStore } from '@/stores/jobs'
+import { formatDateTime, parseDateTime } from '@/utils/date'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const { user, signOut } = useAuth()
+const store = useJobsStore()
 
 const isLogged = computed(() => Boolean(user?.value) || authStore.isAuthenticated)
+
+onMounted(() => { store.fetchAll() })
+
+const totalJobs = computed(() => (store.items || []).length)
+
+const repairedJobs = computed(() => {
+  return (store.items || []).reduce((acc, j) => acc + (store.statusCode(j.status) === 'repaired' ? 1 : 0), 0)
+})
+
+const deliveredJobs = computed(() => {
+  return (store.items || []).reduce((acc, j) => acc + (store.statusCode(j.status) === 'delivered' ? 1 : 0), 0)
+})
+
+const inProgressJobs = computed(() => {
+  const active = new Set(['in_progress','waiting_parts'])
+  return (store.items || []).reduce((acc, j) => acc + (active.has(store.statusCode(j.status)) ? 1 : 0), 0)
+})
+
+const upcomingDeliveries = computed(() => {
+  // Considerar de hoy (00:00) hasta dentro de 7 días (23:59)
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000)
+  end.setHours(23, 59, 59, 999)
+  const exclude = new Set(['delivered','canceled'])
+  return (store.items || [])
+    .filter(j => j.delivery_at)
+    .filter(j => {
+      const d = parseDateTime(j.delivery_at)
+      if (!d) return false
+      const code = store.statusCode(j.status)
+      return d >= start && d <= end && !exclude.has(code)
+    })
+    .sort((a, b) => {
+      const da = parseDateTime(a.delivery_at)
+      const db = parseDateTime(b.delivery_at)
+      return (da?.getTime() || 0) - (db?.getTime() || 0)
+    })
+})
 
 const handleLogout = async () => {
   // Cerrar sesión de Supabase si aplica
@@ -213,6 +296,27 @@ const handleLogout = async () => {
   transform: translateY(-2px);
   box-shadow: 0 16px 30px var(--accent-shadow);
 }
+
+.upcoming {
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  background: var(--card-background);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.card-list { display: flex; flex-direction: column; gap: 10px }
+.card-list-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--card-border); border-radius: 12px;
+  color: var(--text-color); text-decoration: none; background: var(--card-background);
+}
+.card-list-item:hover { background: var(--accent-soft) }
+.item-title { font-weight: 700 }
+.item-sub { color: var(--muted-text); font-size: 14px }
+.item-meta { display: flex; align-items: center; gap: 10px }
+.pill { padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); font-weight: 700; font-size: 12px }
+.status { color: var(--muted-text); font-size: 12px }
 
 @media (max-width: 768px) {
   .dashboard-header {

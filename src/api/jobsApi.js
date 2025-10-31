@@ -2,7 +2,7 @@ import supabase from '@/lib/supabaseClient'
 
 export async function listJobs() {
   return await supabase.from('jobs')
-    .select('id,title,status,customer_name,device_type,brand,model,updated_at')
+    .select('id,title,status,customer_name,device_type,brand,model,updated_at,delivery_at')
     .order('updated_at', { ascending: false })
 }
 

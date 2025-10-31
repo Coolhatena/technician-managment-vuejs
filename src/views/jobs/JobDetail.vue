@@ -5,6 +5,7 @@ import { useJobsStore } from '@/stores/jobs'
 import { uploadAttachment } from '@/api/storageApi' // opcional
 import { deleteJob as apiDeleteJob } from '@/api/jobsApi'
 import { useSwal } from '@/composables/useSwal'
+import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,7 +147,7 @@ function linkify(text) {
           <p><b>Cliente:</b> {{ store.current.customer_name }} ({{ store.current.customer_phone||'n/a' }})</p>
           <p><b>Equipo:</b> {{ store.current.device_type }} | {{ store.current.brand }} {{ store.current.model }}</p>
           <p><b>Serie:</b> {{ store.current.serial || 'n/a' }}</p>
-          <p v-if="store.current.delivery_at"><b>Entrega estimada:</b> {{ new Date(store.current.delivery_at).toLocaleString() }}</p>
+          <p v-if="store.current.delivery_at"><b>Entrega estimada:</b> {{ formatDateTime(store.current.delivery_at) }}</p>
           <p><b>Estado:</b> <span class="status-pill">{{ store.statusLabel(store.current.status) }}</span></p>
         </div>
         <!-- Adjuntar archivo se movió al compositor de logs -->
@@ -241,3 +242,4 @@ function linkify(text) {
 
 @media (max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
+ 
