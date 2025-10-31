@@ -1,28 +1,40 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useJobsStore } from '@/stores/jobs'
 import { uploadAttachment } from '@/api/storageApi' // opcional
+import { deleteJob as apiDeleteJob } from '@/api/jobsApi'
+import { useSwal } from '@/composables/useSwal'
 
 const route = useRoute()
+const router = useRouter()
 const store = useJobsStore()
 const logMsg = ref('')
 const newStatus = ref('') // holds numeric id as string or number
 const attachFile = ref(null)
 const attachName = ref('')
+const { swal } = useSwal()
 
 onMounted(() => store.fetchOne(route.params.id))
 
 // statuses come from store.statuses (id, code, label)
 
 async function addLog() {
-  const status = newStatus.value ? Number(newStatus.value) : null
+  if (!newStatus.value) {
+    swal?.fire({
+      icon: 'warning',
+      title: 'Selecciona un estado',
+      text: 'Debes elegir un estado para agregar el log.',
+    })
+    return
+  }
+  const status = Number(newStatus.value)
   let attachmentUrl = null
   if (attachFile.value) {
     const res = await uploadAttachment(store.current.id, attachFile.value)
     if (res.error) {
       console.error('Error al subir adjunto:', res.error)
-      alert('No se pudo subir el adjunto')
+      swal?.fire({ icon: 'error', title: 'No se pudo subir el adjunto' })
       return
     }
     attachmentUrl = res.data.publicUrl
@@ -46,7 +58,41 @@ async function copyPublicLink() {
   const token = store.current.public_token
   const url = `${location.origin}/track/${token}`
   await navigator.clipboard.writeText(url)
-  alert('Link copiado')
+  swal?.fire({ icon: 'success', title: 'Link copiado', timer: 1400, showConfirmButton: false })
+}
+
+async function confirmDelete() {
+  const res = await swal?.fire({
+    icon: 'warning',
+    title: 'Eliminar reparación',
+    text: 'Esta acción no se puede deshacer. Se eliminará el registro y sus logs asociados.',
+    showCancelButton: true,
+    confirmButtonText: 'Eliminar',
+    confirmButtonColor: '#dc2626',
+    cancelButtonText: 'Cancelar',
+  })
+  if (!res?.isConfirmed) return
+  const id = store.current.id
+  let result
+  if (typeof store.deleteJob === 'function') {
+    result = await store.deleteJob(id)
+  } else if (typeof store.remove === 'function') {
+    result = await store.remove(id)
+  } else {
+    result = await apiDeleteJob(id)
+    if (!result.error) {
+      // Mantener estado consistente si no existe acción en el store
+      store.items = (store.items || []).filter(j => j.id !== id)
+      if (store.current && store.current.id === id) store.current = null
+    }
+  }
+  const { error } = result || {}
+  if (error) {
+    swal?.fire({ icon: 'error', title: 'No se pudo eliminar', text: error.message || 'Intenta nuevamente.' })
+    return
+  }
+  await swal?.fire({ icon: 'success', title: 'Reparación eliminada', timer: 1200, showConfirmButton: false })
+  router.push({ name: 'JobsList' })
 }
 
 async function onFile(e){
@@ -88,6 +134,8 @@ function linkify(text) {
     <header class="page-header">
       <h1>{{ store.current.title }}</h1>
       <div class="toolbar">
+        <router-link class="btn" :to="{ name: 'JobsList' }">Volver a Jobs</router-link>
+        <button class="btn btn-danger" @click="confirmDelete">Eliminar</button>
         <button class="btn btn-ghost" @click="copyPublicLink">Copiar link público</button>
       </div>
     </header>
@@ -166,6 +214,8 @@ function linkify(text) {
 .btn-primary{color:var(--accent-contrast);background:linear-gradient(135deg,var(--role-accent),var(--role-accent-strong));border:none}
 .btn-ghost{background:transparent}
 .btn-outline{background:transparent}
+.btn-danger{color:#fff;background:#ef4444;border:none}
+.btn-danger:hover{filter:brightness(0.95)}
 
 .uploader{margin-top:12px}
 .file-label{display:inline-block;padding:10px 14px;border:1px dashed var(--card-border);border-radius:12px;cursor:pointer;color:var(--muted-text)}

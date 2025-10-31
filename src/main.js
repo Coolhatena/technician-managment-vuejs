@@ -5,10 +5,12 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import SweetAlertPlugin from './plugins/swal'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+app.use(SweetAlertPlugin)
 
 app.mount('#app')

@@ -81,3 +81,8 @@ export async function listStatuses() {
 export async function respondExtra(token, logId, decision) {
   return await supabase.rpc('respond_extra', { p_token: token, p_log_id: logId, p_decision: decision })
 }
+
+// Delete a job
+export async function deleteJob(id) {
+  return await supabase.from('jobs').delete().eq('id', id)
+}

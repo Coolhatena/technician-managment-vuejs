@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { listJobs, getJob, createJob, updateJob, addLog, listStatuses } from '@/api/jobsApi'
+import { listJobs, getJob, createJob, updateJob, addLog, listStatuses, deleteJob } from '@/api/jobsApi'
 
 export const useJobsStore = defineStore('jobs', {
   state: () => ({
@@ -56,6 +56,18 @@ export const useJobsStore = defineStore('jobs', {
         this.current.job_logs.push(data)
       }
       return { data, error }
+    },
+    async remove(id) {
+      const { error } = await deleteJob(id)
+      if (!error) {
+        this.items = this.items.filter(j => j.id !== id)
+        if (this.current && this.current.id === id) this.current = null
+      }
+      return { error }
+    },
+    async deleteJob(id) {
+      // Alias por compatibilidad, delega en remove
+      return await this.remove(id)
     },
     // helpers
     statusLabel(id) {

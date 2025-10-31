@@ -19,7 +19,10 @@ function statusClass(id) {
   <div class="container page">
     <header class="page-header">
       <h1>Reparaciones</h1>
-      <router-link to="/jobs/new" class="btn btn-primary">Nueva</router-link>
+      <div class="actions">
+        <router-link class="btn" :to="{ name: 'Dashboard' }">Volver al dashboard</router-link>
+        <router-link to="/jobs/new" class="btn btn-primary">Nueva</router-link>
+      </div>
     </header>
 
     <div v-if="store.loading" class="loading">Cargando…</div>
@@ -62,6 +65,7 @@ function statusClass(id) {
 .btn-primary { color: var(--accent-contrast); background: linear-gradient(135deg,var(--role-accent),var(--role-accent-strong)); border: none; }
 .btn-primary:hover { filter: brightness(1.05) }
 .loading { color: var(--muted-text); padding: 12px }
+.actions { display: flex; gap: 8px; align-items: center }
 
 .jobs-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .jobs-table thead th {
@@ -78,6 +82,7 @@ function statusClass(id) {
 .status--received { background: #e0e7ff; color: #3730a3 }
 .status--in_progress { background: #d1fae5; color: #065f46 }
 .status--waiting_parts { background: #fef9c3; color: #854d0e }
+.status--extra_sugerido { background: #fae8ff; color: #6b21a8 }
 .status--repaired { background: #dcfce7; color: #166534 }
 .status--delivered { background: #e5e7eb; color: #374151 }
 .status--canceled { background: #fee2e2; color: #991b1b }

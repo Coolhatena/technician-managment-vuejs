@@ -2,11 +2,13 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPublicTracking, respondExtra } from '@/api/jobsApi'
+import { useSwal } from '@/composables/useSwal'
 
 const route = useRoute()
 const token = route.params.token
 const job = ref(null)
 const logs = ref([])
+const { swal } = useSwal()
 
 onMounted(async () => {
   const { data, error } = await getPublicTracking(token)
@@ -71,11 +73,11 @@ async function handleDecision(log, decision) {
     const msg = error?.message || ''
     // Muestra mensaje más útil si la función no existe o permisos
     if (/function.*respond_extra.*does not exist/i.test(msg) || /procedure.*respond_extra.*does not exist/i.test(msg)) {
-      alert('No se pudo enviar tu respuesta: función respond_extra no existe en la base. Aplique las migraciones en Supabase.')
+      swal?.fire({ icon: 'error', title: 'No se pudo enviar tu respuesta', text: 'Función respond_extra no existe en la base. Aplique las migraciones en Supabase.' })
     } else if (/permission denied|execute privilege/i.test(msg)) {
-      alert('No se pudo enviar tu respuesta: sin permisos para ejecutar respond_extra. Verifique GRANT EXECUTE para anon.')
+      swal?.fire({ icon: 'error', title: 'No se pudo enviar tu respuesta', text: 'Sin permisos para ejecutar respond_extra. Verifique GRANT EXECUTE para anon.' })
     } else {
-      alert('No se pudo enviar tu respuesta. Intenta nuevamente.')
+      swal?.fire({ icon: 'error', title: 'No se pudo enviar tu respuesta', text: 'Intenta nuevamente.' })
     }
     return
   }
